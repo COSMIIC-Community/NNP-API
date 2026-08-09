@@ -1,0 +1,86 @@
+% Declare simple state variables
+global uint8 channel = 1
+global uint8 direction = 1
+global uint8 initialized = 0
+
+% Run network setup only on the first execution
+{Setup}
+BEQ initialized 0 => Init
+GOTO => MainLoop
+
+% Initialize network and test stim mode once
+{Init}
+NMT0 7 0x95
+TDEL 300
+NMT0 0 0x05
+TDEL 300
+MOV 1 => initialized
+GOTO => MainLoop
+
+% Main loop: clear all channels, then select the active one
+{MainLoop}
+MOV [0 0] => (uint8)N4:3212.1
+MOV [0 0] => (uint8)N4:3212.2
+MOV [0 0] => (uint8)N4:3212.3
+MOV [0 0] => (uint8)N4:3212.4
+
+% Select which channel to activate
+BEQ channel 1 => Ch1
+BEQ channel 2 => Ch2
+BEQ channel 3 => Ch3
+BEQ channel 4 => Ch4
+GOTO => End
+
+% Activate channel 1
+{Ch1}
+MOV [200 200] => (uint8)N4:3212.1
+GOTO => Wait
+
+% Activate channel 2
+{Ch2}
+MOV [200 200] => (uint8)N4:3212.2
+GOTO => Wait
+
+% Activate channel 3
+{Ch3}
+MOV [200 200] => (uint8)N4:3212.3
+GOTO => Wait
+
+% Activate channel 4
+{Ch4}
+MOV [200 200] => (uint8)N4:3212.4
+GOTO => Wait
+
+% Wait 200 ms before switching to the next channel
+{Wait}
+
+% Advance to the next or previous channel
+BEQ direction 1 => MoveUp
+GOTO => MoveDown
+
+% Move upward through the channels
+{MoveUp}
+ADD channel 1 => channel
+BGTE channel 4 => Reverse
+GOTO => End
+
+% Move downward through the channels
+{MoveDown}
+SUB channel 1 => channel
+BLTE channel 1 => Reverse
+GOTO => End
+
+% Reverse direction when reaching an edge
+{Reverse}
+BEQ direction 1 => SwitchDown
+MOV 1 => direction
+GOTO => End
+
+% Switch to downward motion
+{SwitchDown}
+MOV 0 => direction
+GOTO => End
+
+% Loop back to the start
+{End}
+NOP
